@@ -11,33 +11,43 @@ define([
         },
 
         onAppDataReady: function() {
+            Adapt.course.set("_allQuestionsScore", 0);
             this.setupRender();
         },
 
         setupRender: function() {
-            Adapt.on('componentView:preRender', this.onPreRender);
+            Adapt.on('componentView:preRender', this.onComponentPreRender);
             Adapt.on('componentView:postRender', this.onComponentPostRender);
         },
 
-        onPreRender: function(view) {
+        onComponentPreRender: function(view) {
             if (view.model.get('_questionScore')) {
-                view.model.set({'score': 0});
+                view.model.set({'_questionScoreResult': 0});
             }
             
         },
 
         onComponentPostRender: function(view) {
             if(view.model.get('_questionScore')){
-                view.listenTo(view.model, "change:_isComplete", ScoringHandler.addScore);
+                view.listenTo(view.model, "change:_isInteractionComplete", ScoringHandler.addScore);
             }
         },
 
         addScore: function(vm){
-            let attempts = vm.get('_attempts') - vm.get('_attemptsLeft'),
+            //sum to determine how many attempts have been made
+            var attempts = vm.get('_attempts') - vm.get('_attemptsLeft'),
+            //get answer when either correct or all attempts used
             ansIndex = vm.get('_selectedItems'),
-            qScore = vm.get('_questionScore');
-            ansIndex = ansIndex[0]._index;
-            vm.set("score", qScore[ansIndex][attempts]);
+            ansIndex = ansIndex[0]._index,
+            //get the scoring for this question
+            qScore = vm.get('_questionScore'),
+            //get score from all questions regardless of assessment - based on course
+            prevScore = Adapt.course.get('_allQuestionsScore');
+            //add score for this question to question model
+            //vm.set("_questionScoreResult", qScore[ansIndex][attempts]);
+            //add score for this question to all question scores for this course
+            Adapt.course.set('_allQuestionsScore', (prevScore + qScore[ansIndex][attempts]));
+            //if(Adapt.config.shouldSubmitQuestionScore) Adapt.offlineStorage.set('questionScore', (prevScore + qScore[ansIndex][attempts]));
         }
 
     }, Backbone.Events);
